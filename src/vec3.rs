@@ -1,9 +1,40 @@
+use rand::distributions::{Distribution, Standard, Uniform};
+use rand::Rng;
 use std::fmt;
 use std::ops;
+
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Vec3(pub [f64; 3]);
 
+pub type Color = Vec3;
+
+pub type Point = Vec3;
+
 impl Vec3 {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self([x, y, z])
+    }
+
+    pub fn x(&self) -> f64 {
+        self[0]
+    }
+
+    pub fn y(&self) -> f64 {
+        self[1]
+    }
+
+    pub fn z(&self) -> f64 {
+        self[2]
+    }
+
+    pub fn x_y_z(&self) -> (f64, f64, f64) {
+        (self.x(), self.y(), self.z())
+    }
+
+    pub fn x_y_z_trunc(&self) -> (u16, u16, u16) {
+        (self.x() as u16, self.y() as u16, self.z() as u16)
+    }
+
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
@@ -30,6 +61,39 @@ impl Vec3 {
 
     pub fn unit_vector(&self) -> Self {
         *self / self.length()
+    }
+
+    pub fn random(min: f64, max: f64) -> Self {
+        let range = Uniform::new(min, max);
+        let mut rng = rand::thread_rng();
+        let (x, y, z) = (
+            range.sample(&mut rng),
+            range.sample(&mut rng),
+            range.sample(&mut rng),
+        );
+        Self::new(x, y, z)
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Vec3::random(-1.0, 1.0);
+            if p.length_squared() >= 1.0 {
+                continue;
+            }
+            return p;
+        }
+    }
+
+    pub fn random_in_hemisphere(normal: &Self) -> Self {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        match in_unit_sphere.dot(normal) > 0.0 {
+            true => in_unit_sphere,
+            false => -in_unit_sphere,
+        }
+    }
+
+    pub fn random_unit_vector() -> Self {
+        Self::random_in_unit_sphere().unit_vector()
     }
 }
 
@@ -152,5 +216,11 @@ impl ops::DivAssign for Vec3 {
 impl ops::DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, rhs: f64) {
         *self = *self / rhs;
+    }
+}
+
+impl Distribution<Vec3> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Vec3 {
+        Vec3::new(rng.gen(), rng.gen(), rng.gen())
     }
 }

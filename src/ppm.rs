@@ -1,4 +1,4 @@
-use crate::color::Color;
+use crate::vec3::Color;
 pub struct Ppm(String);
 
 impl Ppm {
@@ -10,9 +10,13 @@ impl Ppm {
         self.0.push_str(s);
     }
 
-    pub fn push_color(&mut self, c: &Color) {
-        let c = *c * 255.999;
-        let (r, g, b) = (c.r().trunc(), c.g().trunc(), c.b().trunc());
+    pub fn push_color(&mut self, c: &Color, samples_per_pixel: u16) {
+        let scale = (samples_per_pixel as f64).recip();
+        let (r, g, b) = {
+            let c = *c * scale;
+            let clamp = |x: f64| -> f64 { (256.0 * x.sqrt().clamp(0.0, 0.999)).trunc() };
+            (clamp(c.x()), clamp(c.y()), clamp(c.z()))
+        };
         let ic = Color::new(r, g, b);
         self.0.push_str(&format!("{}\n", ic));
     }
